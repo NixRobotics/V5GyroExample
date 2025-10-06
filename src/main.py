@@ -23,7 +23,7 @@ GYRO_SCALE = None
 track_width = 15 * 25.4 # will not be used with inertial sensor
 wheel_base = 15 * 25.4 # will not be used with inertial sensor
 wheel_travel = 319.19 # still used for driving forward / backwards
-ext_gear_ratio = 1 # still needed to driving forward / backwards
+ext_gear_ratio = 1 # still needed for driving forward / backwards
 
 # NOTE: Use SmartDrive here instead
 drivetrain = SmartDrive(left_drive, right_drive, inertial, wheel_travel, track_width, wheel_base, MM, ext_gear_ratio)
