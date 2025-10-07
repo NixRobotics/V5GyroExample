@@ -3,11 +3,11 @@ from vex import *
 
 brain = Brain()
 
-l1 = Motor(Ports.PORT1, GearSetting.RATIO_18_1, False)
-l2 = Motor(Ports.PORT2, GearSetting.RATIO_18_1, False)
+l1 = Motor(Ports.PORT1, GearSetting.RATIO_18_1, True)
+l2 = Motor(Ports.PORT3, GearSetting.RATIO_18_1, True)
 left_drive = MotorGroup(l1, l2)
-r1 = Motor(Ports.PORT3, GearSetting.RATIO_18_1, True)
-f2 = Motor(Ports.PORT4, GearSetting.RATIO_18_1, True)
+r1 = Motor(Ports.PORT2, GearSetting.RATIO_18_1, False)
+r2 = Motor(Ports.PORT4, GearSetting.RATIO_18_1, False)
 right_drive = MotorGroup(r1, r2)
 
 inertial = Inertial(Ports.PORT5)
@@ -18,7 +18,8 @@ inertial = Inertial(Ports.PORT5)
 #  set to (10 * 360 + 45) / 10 = 364.5
 # IMPORTANT: If the robot does not turn cleanly meaning TURN_CONSTANT needs adjusting, do that first (see NOTE below). If this is
 #  the case temporarily set GYRO_SCALE to 360.0 and come back to this later
-GYRO_SCALE = None
+GYRO_SCALE_UNKOWN = False
+GYRO_SCALE = 360.0
 
 track_width = 15 * 25.4 # will not be used with inertial sensor
 wheel_base = 15 * 25.4 # will not be used with inertial sensor
@@ -59,7 +60,7 @@ def autonomous():
 #  desired heading. If robot swings back and forth this value is too high, if robot turns very slowly or never reaches the heading
 #  this is too low. You want to find a value where the robot stops cleanly with just a very small wobble at the end. This value will
 #  be dependent on robot weight and speed at which you turn, so you may need to adjust occasionally
-TURN_CONSTANT = 1.0
+TURN_CONSTANT = 0.8
 
 # NOTE: TIME_FOR_FULL_TURN is how fast the robot can complete one full revolution. It is used to calculate a timeout value to stop
 #  the robot in case turn command does not complete, e.g. if blocked against something
@@ -74,7 +75,7 @@ def full_turn(number_of_turns = 1):
     # the robot turns you need to provide your own calculation here
     drivetrain.set_timeout(TIME_FOR_FULL_TURN * number_of_turns + 1, SECONDS)
     # NOTE: here we use the inverse of gyro_scale
-    drivetrain.turn_for(RIGHT, number_of_turns * 360 * (360 / gyro_scale)), DEGREES)
+    drivetrain.turn_for(RIGHT, number_of_turns * 360.0 * (360.0 / GYRO_SCALE), DEGREES)
     # TODO: can add out own timeout detection here
     drivetrain.stop(BRAKE)
 
@@ -100,17 +101,17 @@ def user_control():
     #  (when we wanted 360 degrees) it means the inertial sensor is returning a too small value, so we multiply by 365/360 in this case. This is
     #  the opposite of when we tell the drivetrain what we want it to do. Because it turns too far we want it to turn less so in the turn_far()
     #  command we tell it to turn less by a factor of 360/365 (the inverse)
-    start_angle = inertial.rotation(DEGREES) * (gyro_scale / 360)
-    brain.screen.print("Starting Heading: " + inertial.rotation())
+    start_angle = inertial.rotation(DEGREES) * (GYRO_SCALE / 360)
+    brain.screen.print("Starting Heading: ", inertial.rotation())
 
-    if GYRO_SCALE is None:
+    if GYRO_SCALE_UNKOWN:
         full_turn(10)
     else:
         full_turn(1)
 
-    end_angle = inertial.rotation(DEGREES) * (gyro_scale / 360)
+    end_angle = inertial.rotation(DEGREES) * (GYRO_SCALE / 360)
     brain.screen.next_row()
-    brain.screen.print("End Heading: " + inertial.rotation())
+    brain.screen.print("End Heading: ", inertial.rotation())
 
     # place driver control in this while loop
     while True:
