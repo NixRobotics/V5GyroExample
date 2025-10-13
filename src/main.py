@@ -1,8 +1,14 @@
+# EXAMPLE CODE USING INERTIAL SENSOR TO TURN ROBOT 360 DEGREES
+#
+# See README at: https://github.com/NixRobotics/V5GyroExample/blob/main/README.md
+#
+
 # Library imports
 from vex import *
 
 brain = Brain()
 
+# declare motors
 l1 = Motor(Ports.PORT1, GearSetting.RATIO_18_1, True)
 l2 = Motor(Ports.PORT3, GearSetting.RATIO_18_1, True)
 left_drive = MotorGroup(l1, l2)
@@ -12,14 +18,27 @@ right_drive = MotorGroup(r1, r2)
 
 inertial = Inertial(Ports.PORT5)
 
-# NOTE: Set GYRO_SCALE to the amount the robot actually turns when instructed to turn 360 degrees, e.g. if it turns by 365 degrees
-#  enter that here. If set to None the code below will turn the robot by 10 revolutions so you can see the error more clearly.
-#  E.g. if the robot finishes at an angle of 45 degrees after being instructed to turn 10*360 degrees, then GYRO_SCALE should be
-#  set to (10 * 360 + 45) / 10 = 364.5
+# NOTE: GYRO_SCALE is used to compensate for each inertial sensor's built in error. This will be different for each sensor
+#  and must be determined experimentally before use.
+# 
+#  If GYRO_SCALE_UNKNOWN is set to True then the robot will turn 10 times to make the error more visible. Measure the error
+#  and divide by 10 to get the amount the robot actually turns when instructed to turn 360 degrees. This value can then be
+#  entered for ACTUAL_ROBOT_FULL_TURN, e.g. if the robot is pointing at 45degress to the right from where it started it says
+#  that the robot will turn by 360 + 45/10 = 364.5 degrees when instructed to turn 360 degrees. So we set ACTUAL_ROBOT_FULL_TURN
+#  to 364.5 and then set GYRO_SCALE_UNKNOWN to False to indicate we know what the error is.
+#
+#  The two values GYRO_SCALE_FOR_TURNS and GYRO_SCALE_FOR_READOUT are then used in the code as follows:
+#   - GYRO_SCALE_FOR_TURNS is used when we tell the drivetrain to turn. In the example above we want the robot to turn less
+#   - GURO_SCALE_FOR_READOUT is used when we read the inertial sensor to display the current heading. In the example above
+#     the inertial sensor is returning a value that is too small so we need to multiply by a factor > 1 to get the correct value
+#
 # IMPORTANT: If the robot does not turn cleanly meaning TURN_CONSTANT needs adjusting, do that first (see NOTE below). If this is
-#  the case temporarily set GYRO_SCALE to 360.0 and come back to this later
-GYRO_SCALE_UNKOWN = False
-GYRO_SCALE = 360.0
+#  the case temporarily set GYRO_SCALE_UNKOWN to False and ACTUAL_ROBOT_FULL_TURN to 360.0 and come back to this later
+
+GYRO_SCALE_UNKOWN = True
+ACTUAL_ROBOT_FULL_TURN = 365.0
+GYRO_SCALE_FOR_TURNS = 360.0 / ACTUAL_ROBOT_FULL_TURN
+GYRO_SCALE_FOR_READOUT = ACTUAL_ROBOT_FULL_TURN / 360.0
 
 track_width = 15 * 25.4 # will not be used with inertial sensor
 wheel_base = 15 * 25.4 # will not be used with inertial sensor
@@ -75,7 +94,7 @@ def full_turn(number_of_turns = 1):
     # the robot turns you need to provide your own calculation here
     drivetrain.set_timeout(TIME_FOR_FULL_TURN * number_of_turns + 1, SECONDS)
     # NOTE: here we use the inverse of gyro_scale
-    drivetrain.turn_for(RIGHT, number_of_turns * 360.0 * (360.0 / GYRO_SCALE), DEGREES)
+    drivetrain.turn_for(RIGHT, number_of_turns * GYRO_SCALE_FOR_TURNS, DEGREES)
     # TODO: can add out own timeout detection here
     drivetrain.stop(BRAKE)
 
@@ -101,17 +120,17 @@ def user_control():
     #  (when we wanted 360 degrees) it means the inertial sensor is returning a too small value, so we multiply by 365/360 in this case. This is
     #  the opposite of when we tell the drivetrain what we want it to do. Because it turns too far we want it to turn less so in the turn_far()
     #  command we tell it to turn less by a factor of 360/365 (the inverse)
-    start_angle = inertial.rotation(DEGREES) * (GYRO_SCALE / 360)
-    brain.screen.print("Starting Heading: ", inertial.rotation())
+    start_angle = inertial.rotation(DEGREES) * GYRO_SCALE_FOR_READOUT
+    brain.screen.print("Starting Heading: ", start_angle)
 
     if GYRO_SCALE_UNKOWN:
         full_turn(10)
     else:
         full_turn(1)
 
-    end_angle = inertial.rotation(DEGREES) * (GYRO_SCALE / 360)
+    end_angle = inertial.rotation(DEGREES) * GYRO_SCALE_FOR_READOUT
     brain.screen.next_row()
-    brain.screen.print("End Heading: ", inertial.rotation())
+    brain.screen.print("End Heading: ", end_angle)
 
     # place driver control in this while loop
     while True:
