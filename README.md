@@ -20,7 +20,7 @@ This delay is hidden when the robot is connected to a field controller (as in a 
 using one of the Competition or Timed Run options on the controller. If you just do Program->Run on the controller then
 you will see the delay directly.
 
-2. PID control of turns (see TURN_CONSTANT and TIME_FOR_FULL_TURN notes below)
+2. PID control of turns (see TURN_CONSTANT and TIME_FOR_FULL_TURN NOTEs in code)
 
 The big difference between using an inertial sensor and not using one is that in the simple case of turning the robot without
 a sensor you just turn the motors for a fixed number of revolutions, whereas with the inertial sensor you are constantly
@@ -43,7 +43,7 @@ Without going into too many details of PID control there are 3 concepts that nee
    and the actual heading. This is normal. The controller will try to reduce this error to zero but will never get there. Instead it
    will "settle" at some small error value. The time taken to reach this value is known as the settle time and the resulting error is
    known as the steady-state error. Because of this, turns can and will have a small variation in terms of how long they take to complete
-   and the final heading. If the turn_constant is set correctly the settle time and error should be small, but its good to
+   and an error the final heading. If the turn_constant is set correctly the settle time and error should be small, but its good to
    plan to have a few seconds of margin for your autnomous routine and to read back the heading after a turn to see where you
    are actually pointing
 
@@ -52,7 +52,7 @@ Without going into too many details of PID control there are 3 concepts that nee
    should be set to a value that is longer than the time it takes to complete the turn under normal conditions. This way if the robot is
    blocked it will stop after the timeout rather than continuing to try and turn forever. See NOTE in the code for more details.
 
-3. Heading Eror (see GYRO_SCALE notes below)
+3. Heading Eror (see GYRO_SCALE NOTE in code)
 
 Each inertial sensor has a certain amount of built-in error, typically in the range of +/- 1% to 2%. For example most sensors
 I've used will turn the robot in the range of 355 to 365 degrees when in reality we want to turn 360 degrees. So for each sensor
@@ -62,19 +62,53 @@ and right and at different speeds taking the average. For expediency I implement
 which you can measure the error and divide by 10 to get the average error per turn. This value is then used to adjust the turn
 commands or the reading of the inertial sensor. See NOTE in the code for more details.
 
-4. Understanding the difference between inertial.angle(), inertial.rotation() and inertial.heading()
+4. Understanding the difference between Inertial.angle(), Inertial.rotation() and Inertial.heading()
 
 VEX API provides 3 ways to read the inertial sensor
- - inertial.heading(): Provides a value in the range 0 to 360 degress similar to a compass heading (not recommended as explained below)
- - inertial.rotation(): Provides a continuous value that is either positive or negative (recommended)
- - inertial.angle(): Provides a value in the range -180 to +180 degrees (again not recommended as explained below)
+ - Inertial.heading(): Provides a value in the range 0 to 359 degress similar to a compass heading (not recommended as explained below)
+ - Inertial.rotation(): Provides a continuous value that is either positive or negative (recommended)
+ - Inertial.angle(): Provides a value in the range -179 to +180 degrees (again not recommended as explained below)
+
 Only inertial.rotation() is recommended for use as it provides a continuous value that can be positive or negative allowing
 the GYRO_SCALE compensation to work correctly. For example applying the GYRO_SCALE compensation to inertial.heading() will not work
-correclty as turning a robot left by 10 degrees results in a heading of 350 degrees. Applying a GYRO_SCALE compensation to this value
-will not work as intended. It is better to to use inertial.rotation() and then provide your own function to translate this to a
-heading if needed.
+correclty as turning a robot left by 10 degrees results in a heading of 350 degrees (multiplying this by GYRO_SCALE will produce the
+wrong result).
 
-5. Long-term drift
+Inertial.angle() can be used with care, but understand that there is a discontinuity when going from say 170 degrees to 190 degrees, as
+190 would read as -170.
 
-Inertial sensors are subject to long-term drift due to the nature of the sensors used. This means that over time the heading
-will drift away from the actual heading. The amount of drift will depend on the quality of
+When using Inertial.rotation() the one drawback is that if you want to translate it to a field compass heading, then you will have
+to implement your own code to "reduce" the value to be in the range 0 to 359 degrees, but this can easily be done with a while loop
+or a modulus (aka remainder) math call
+
+5. What does the sensor report?
+
+Regardless of which API call you choose to read the sensor, it does not have any conecept of how the robot is oriented on
+the field. 0 degrees heading is the heading at which the sensor is powered on at. You can override this by using a call such as
+Inertial.set_heading(), or keeping track of orientation in code. Its therefore necessary to align the robot correclty upon power-up
+typically by placing it flush against the field perimter or aligning with the field tiles.
+
+6. Long-term drift
+
+Inertial sensors are subject to long-term drift due to the nature of the technology. This means that over time the heading
+will drift away from the actual heading. The amount of drift will depend on the quality of the sensor and how it is mounted.
+While drift is unavoidable, being careful with mounting and avoiding unnecessary "jolts" to the robot during autonomous helps.
+
+In general mounting tips are as follows:
+ - Avoid vibration: Keep sensor as low as possible on the robot and away from any sources of vibration. VEX has a few options
+   that can be used to reduce vibration such as the anti-slip material, foam and rubber stand-offs
+ - Avoid unnecessary acceleration: Keep sensor as close to pivot or turning point of the robot. This is typicaly between any
+   traction wheels if present on the robot
+ - Avoid jolts during autonomous routines: The sensors will "saturate" when bumped meaning that the motion is to large for the
+   output reading. If "wall bumps" are part of the autonomous routine to straighten out the robot, then reset the heading inbetween
+   these
+
+Inertial sensors are only really meant to be used in the order of a few seconds and not a full minute and rely on an occasional
+external fixed reference to work properly. VEX provides sensors such as the GPS sensor that can be used (with care) for this or
+by using techniques such as "wall bumps" or triangulation with two distance sensors
+
+7. Inertial sensors do not make the robot drive straight - you do!
+
+Adding an inertial sensor is a prerequisite for getting more accurate autonomous routines, but it is not sufficient. If you use a
+call such as turn_for() its operation completes after the call. Any subsequent errors due to mechanical imperfections in the robot
+will not be corrected. You will need to track the heading the sensor reports continuously and adjust accordingly.
