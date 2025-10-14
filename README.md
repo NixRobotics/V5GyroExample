@@ -110,5 +110,6 @@ by using techniques such as "wall bumps" or triangulation with two distance sens
 7. Inertial sensors do not make the robot drive straight - you do!
 
 Adding an inertial sensor is a prerequisite for getting more accurate autonomous routines, but it is not sufficient. If you use a
-call such as turn_for() its operation completes after the call. Any subsequent errors due to mechanical imperfections in the robot
-will not be corrected. You will need to track the heading the sensor reports continuously and adjust accordingly.
+call such as SmartDrive.turn_for() its funcionality ends once the call completes. Any subsequent errors due to mechanical
+imperfections in the robot will not be corrected for. You will need to track the heading the sensor reports continuously
+and adjust accordingly.
