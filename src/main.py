@@ -36,7 +36,7 @@ inertial = Inertial(Ports.PORT5)
 #  the case temporarily set GYRO_SCALE_UNKOWN to False and ACTUAL_ROBOT_FULL_TURN to 360.0 and come back to this later
 
 GYRO_SCALE_UNKOWN = True
-ACTUAL_ROBOT_FULL_TURN = 365.0
+ACTUAL_ROBOT_FULL_TURN = 360.0 # e.g. if robot actually turns 365 degrees for a 360 rotation enter 365 here
 GYRO_SCALE_FOR_TURNS = 360.0 / ACTUAL_ROBOT_FULL_TURN
 GYRO_SCALE_FOR_READOUT = ACTUAL_ROBOT_FULL_TURN / 360.0
 
@@ -79,7 +79,7 @@ def autonomous():
 #  desired heading. If robot swings back and forth this value is too high, if robot turns very slowly or never reaches the heading
 #  this is too low. You want to find a value where the robot stops cleanly with just a very small wobble at the end. This value will
 #  be dependent on robot weight and speed at which you turn, so you may need to adjust occasionally
-TURN_CONSTANT = 0.8
+TURN_CONSTANT = 1.0
 
 # NOTE: TIME_FOR_FULL_TURN is how fast the robot can complete one full revolution. It is used to calculate a timeout value to stop
 #  the robot in case turn command does not complete, e.g. if blocked against something
@@ -95,7 +95,7 @@ def full_turn(number_of_turns = 1):
     drivetrain.set_timeout(TIME_FOR_FULL_TURN * number_of_turns + 1, SECONDS)
     # NOTE: here we use the inverse of gyro_scale
     drivetrain.turn_for(RIGHT, number_of_turns * GYRO_SCALE_FOR_TURNS, DEGREES)
-    # TODO: can add out own timeout detection here
+    # TODO: can add our own timeout detection here
     drivetrain.stop(BRAKE)
 
 def user_control():
