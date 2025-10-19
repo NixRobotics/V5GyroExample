@@ -94,7 +94,7 @@ def full_turn(number_of_turns = 1):
     # the robot turns you need to provide your own calculation here
     drivetrain.set_timeout(TIME_FOR_FULL_TURN * number_of_turns + 1, SECONDS)
     # NOTE: here we use the inverse of gyro_scale
-    drivetrain.turn_for(RIGHT, number_of_turns * GYRO_SCALE_FOR_TURNS, DEGREES)
+    drivetrain.turn_for(RIGHT, number_of_turns * 360.0 * GYRO_SCALE_FOR_TURNS, DEGREES)
     # TODO: can add out own timeout detection here
     drivetrain.stop(BRAKE)
 
