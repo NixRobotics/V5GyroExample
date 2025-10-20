@@ -33,9 +33,9 @@ inertial = Inertial(Ports.PORT5)
 #     the inertial sensor is returning a value that is too small so we need to multiply by a factor > 1 to get the correct value
 #
 # IMPORTANT: If the robot does not turn cleanly meaning TURN_CONSTANT needs adjusting, do that first (see NOTE below). If this is
-#  the case temporarily set GYRO_SCALE_UNKOWN to False and ACTUAL_ROBOT_FULL_TURN to 360.0 and come back to this later
+#  the case temporarily set GYRO_SCALE_UNKNOWN to False and ACTUAL_ROBOT_FULL_TURN to 360.0 and come back to this later
 
-GYRO_SCALE_UNKOWN = True
+GYRO_SCALE_UNKNOWN = True
 ACTUAL_ROBOT_FULL_TURN = 360.0 # e.g. if robot actually turns 365 degrees for a 360 rotation enter 365 here
 GYRO_SCALE_FOR_TURNS = 360.0 / ACTUAL_ROBOT_FULL_TURN
 GYRO_SCALE_FOR_READOUT = ACTUAL_ROBOT_FULL_TURN / 360.0
@@ -67,6 +67,28 @@ def pre_autonomous():
             wait(50, MSEC)
 
     ROBOT_INITIALIZED = True
+
+# AUTONOMOUS HELPER FUNCTIONS
+
+# returns the inertial sensor's corrected direction as continuous ROTATION [-inf, +inf]
+# this is the only version of the direction routines that queries the inertial sensor directly
+def gyro_rotation():
+    return inertial.rotation(DEGREES) * GYRO_SCALE_FOR_READOUT
+
+# returns the inertial sensor's corrected direction as HEADING [0, 360)
+def gyro_heading():
+    return gyro_rotation() % 360.0
+
+# returns the inertial sensor's corrected direction as ANGLE (-180, +180]
+def gyro_heading():
+    angle = gyro_heading()
+    if (angle > 180.0) angle -= 360.0
+    return angle
+
+# mimics the operation of drivetrain.turn_to_heading() but using corrected gyro readings
+def turn_to_heading(heading):
+    # under construction
+    pass
 
 def autonomous():
     # wait for initialization to complete
@@ -123,7 +145,7 @@ def user_control():
     start_angle = inertial.rotation(DEGREES) * GYRO_SCALE_FOR_READOUT
     brain.screen.print("Starting Heading: ", start_angle)
 
-    if GYRO_SCALE_UNKOWN:
+    if GYRO_SCALE_UNKNOWN:
         full_turn(10)
     else:
         full_turn(1)
