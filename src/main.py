@@ -80,7 +80,7 @@ def gyro_heading():
     return gyro_rotation() % 360.0
 
 # returns the inertial sensor's corrected direction as ANGLE (-180, +180]
-def gyro_heading():
+def gyro_angle():
     angle = gyro_heading()
     if (angle > 180.0) angle -= 360.0
     return angle
