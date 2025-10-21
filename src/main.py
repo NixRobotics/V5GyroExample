@@ -75,20 +75,43 @@ def pre_autonomous():
 def gyro_rotation():
     return inertial.rotation(DEGREES) * GYRO_SCALE_FOR_READOUT
 
-# returns the inertial sensor's corrected direction as HEADING [0, 360)
-def gyro_heading():
-    return gyro_rotation() % 360.0
+# performs modulus operation on the input so that output is in range [0, 360) degrees
+# note that this will lose history on total full revolutions, but useful if we want current HEADING of the robot
+def to_heading(rotation):
+    return rotation % 360.0
 
-# returns the inertial sensor's corrected direction as ANGLE (-180, +180]
-def gyro_angle():
-    angle = gyro_heading()
+# performs modulus operation and offset on the input so that output is in range (-180, + 180] degrees
+# note that this will lose history on total full revolutions, but useful if we want current ANGLE of the robot
+def to_angle(rotation):
+    angle = rotation % 360.0
     if (angle > 180.0) angle -= 360.0
     return angle
 
-# mimics the operation of drivetrain.turn_to_heading() but using corrected gyro readings
-def turn_to_heading(heading):
-    # under construction
-    pass
+# returns the inertial sensor's corrected direction as HEADING [0, 360) degrees
+def gyro_heading():
+    return to_heading(gyro_rotation())
+
+# returns the inertial sensor's corrected direction as ANGLE (-180, +180] degrees
+def gyro_angle():
+    return to_angle(gyro_rotation())
+
+# Calculate a turn angle to get the robot facing towards a (real) HEADING based on current gyro reading
+# This will return the smallest amount either left or right, ie no turns greater than 180deg
+# Provide own function if you want to turn e.g. 270degrees left instead of 90degrees right
+# Input heading reflects the true HEADING we want the robot to finish at
+# Returns the scaled turn ANGLE with negative value up to -180deg * gyro_scale for left turn and positive value up to +180deg * scale_scale for right turn
+# Returned value will exceed -180 to +180 degree range necessarily to compensate for a robot that underturns, so we apply the scale factor last
+def calc_angle_to_heading(heading):
+    # read corrected sensor as HEADING - this should reflect the robot's true HEADING, assuming scale factor is set correctly and sensor has not
+    # drifted too much
+    current_heading = gyro_heading()
+    # delta_heading will be the difference between the desired (real) heading and current (real) heading
+    delta_heading = heading - current_heading
+    # ensure result is in range -180deg (left turns) to +180deg (right turns) and finally multiply by scale factor
+    delta_angle = to_angle(delta_heading) * GYRO_SCALE_FOR_TURNS
+
+    # returned value can be fed direcltly to drivetrain.turn_for(), but not drivetrain.turn_to_heading()
+    return delta_angle
 
 def autonomous():
     # wait for initialization to complete
