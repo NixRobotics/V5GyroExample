@@ -77,14 +77,16 @@ def gyro_rotation():
 
 # performs modulus operation on the input so that output is in range [0, 360) degrees
 # note that this will lose history on total full revolutions, but useful if we want current HEADING of the robot
+# @param rotation as ROTATION value (either corrected or not - function is agnostic)
 def to_heading(rotation):
     return rotation % 360.0
 
 # performs modulus operation and offset on the input so that output is in range (-180, + 180] degrees
 # note that this will lose history on total full revolutions, but useful if we want current ANGLE of the robot
+# @param rotation as ROTATION value (either corrected or not - function is agnostic)
 def to_angle(rotation):
     angle = rotation % 360.0
-    if (angle > 180.0) angle -= 360.0
+    if (angle > 180.0): angle -= 360.0
     return angle
 
 # returns the inertial sensor's corrected direction as HEADING [0, 360) degrees
@@ -95,12 +97,17 @@ def gyro_heading():
 def gyro_angle():
     return to_angle(gyro_rotation())
 
-# Calculate a turn angle to get the robot facing towards a (real) HEADING based on current gyro reading
-# This will return the smallest amount either left or right, ie no turns greater than 180deg
-# Provide own function if you want to turn e.g. 270degrees left instead of 90degrees right
-# Input heading reflects the true HEADING we want the robot to finish at
+# Calculate a "raw" turn angle to get the robot facing towards a "real" HEADING based on current gyro reading
+#
+# This will return the smallest amount either left or right, ie no turns greater than 180deg. Provide own function if you want to turn
+# longer way around for some reason  e.g. 270degrees left instead of 90degrees right
+#
+# @param Input heading reflects the true HEADING we want the robot to finish at
 # Returns the scaled turn ANGLE with negative value up to -180deg * gyro_scale for left turn and positive value up to +180deg * scale_scale for right turn
-# Returned value will exceed -180 to +180 degree range necessarily to compensate for a robot that underturns, so we apply the scale factor last
+#
+# NOTE: The scaled return value in this case will *not* represent true motion of the robot, but rather the value we want from the gyro to get this motion
+# Therefore, returned value may exceed -180 to +180 degree range necessarily to compensate for a robot that underturns, so we apply the scale factor last,
+# meaning do not apply any additional limit code or bounds checking on the return value
 def calc_angle_to_heading(heading):
     # read corrected sensor as HEADING - this should reflect the robot's true HEADING, assuming scale factor is set correctly and sensor has not
     # drifted too much
@@ -112,6 +119,48 @@ def calc_angle_to_heading(heading):
 
     # returned value can be fed direcltly to drivetrain.turn_for(), but not drivetrain.turn_to_heading()
     return delta_angle
+
+# Computes the "raw" rotation value we want the gyro to read for a "real" HEADING
+# @param Input heading reflects the true HEADING we want the robot to finish at
+# Returns a scaled rotation value that can be used with drivetrain.turn_to_rotation()
+def calc_rotation_at_heading(heading):
+    # First get the robot's total "real" rotation and heading - be careful not to read the inertial sensor twice in the same routine
+    # in case it gets updated.
+    current_rotation = gyro_rotation()
+    current_heading = to_heading(current_rotation)
+
+    # Calculate the real heading and angle delta to get to the desired heading
+    delta_heading = heading - current_heading
+    delta_angle = to_angle(delta_heading)
+
+    # The new rotation value will be the current + the angle delta * scale factor
+    new_rotation = current_rotation + delta_angle
+    new_rotation *= GYRO_SCALE_FOR_TURNS
+
+    # Return value can be used with drivetrain.turn_to_rotation() - will not work with drivetrain.turn_to_heading()
+    return new_rotation
+
+# turn_for() is the simplest case, we just multiply by scale factor and call corresponding drivetrain command
+def turn_for(turn_direction, turn_angle):
+    # ... do pre turn stuff here
+    drivetrain.turn_for(turn_direction, turn_angle * GYRO_SCALE_FOR_TURNS, DEGREES)
+    # ... do post turn stuff here
+
+# turn_to_heading1 is a sligthly more complicated version using drivetrain.turn_for() where we provide the direction we want to end up facing rather than
+# a turn amount. This is useful if we don't want to keep track of each individual turn
+def turn_to_heading1(heading):
+    # ... do pre turn stuff here
+    turn_angle = calc_angle_to_heading(heading)
+    # NOTE: calc_angle_to_heading() will apply the scaling factor so we don't need to do that here
+    drivetrain.turn_for(turn_direction, turn_angle, DEGREES)
+    # ... do post turn stuff here
+
+# turn_to_heading2 uses the drivetrain.turn_to_rotation() as another example as to how to turn to an absolute heading
+def turn_to_heading2(heading):
+    # ... do pre turn stuff here
+    new_rotation = calc_rotation_at_heading(heading)
+    drivetrain.turn_to_rotation(new_rotation, DEGREES)
+    # ... do post turn stuff here
 
 def autonomous():
     # wait for initialization to complete
